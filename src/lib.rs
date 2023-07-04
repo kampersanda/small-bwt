@@ -11,7 +11,11 @@ pub fn compute_bwt(text: &[u8], chunk_size: usize) -> Result<Vec<u8>> {
     if chunk_size == 0 {
         return Err(anyhow!("chunk_size must be positive."));
     }
+    let n_expected_cuts = text.len() / chunk_size;
+
+    eprintln!("Generating {n_expected_cuts} cuts...");
     let cuts = CutGenerator::generate(text, chunk_size);
+    eprintln!("Generating BWT...");
     Ok(bwt_from_cuts(text, &cuts))
 }
 
@@ -27,6 +31,9 @@ fn bwt_from_cuts(text: &[u8], cuts: &[Vec<u8>]) -> Vec<u8> {
     let mut chunks = vec![];
 
     for q in 1..=cuts.len() {
+        if q % 100 == 0 {
+            eprintln!("{} cuts processed.", q);
+        }
         if q < cuts.len() {
             for j in 0..text.len() {
                 let cut_p = cuts[q - 1].as_slice();
@@ -89,6 +96,9 @@ impl<'a> CutGenerator<'a> {
                 if self.lens.is_empty() || *self.lens.last().unwrap() + freq > self.chunk_size {
                     self.cuts.push(vec![]);
                     self.lens.push(0);
+                    if self.cuts.len() % 100 == 0 {
+                        eprintln!("{} cuts generated.", self.cuts.len());
+                    }
                 }
                 *self.cuts.last_mut().unwrap() = cut.clone();
                 *self.lens.last_mut().unwrap() += freq;

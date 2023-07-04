@@ -6,6 +6,7 @@ use anyhow::{anyhow, Result};
 pub struct BwtBuilder<'a> {
     text: &'a [u8],
     chunk_size: usize,
+    verbose: bool,
 }
 
 impl<'a> BwtBuilder<'a> {
@@ -16,7 +17,11 @@ impl<'a> BwtBuilder<'a> {
         let n = text.len() as f64;
         let chunk_size = (n / n.log2()).ceil() as usize;
         let chunk_size = chunk_size.max(1);
-        Ok(Self { text, chunk_size })
+        Ok(Self {
+            text,
+            chunk_size,
+            verbose: false,
+        })
     }
 
     pub fn chunk_size(mut self, chunk_size: usize) -> Result<Self> {
@@ -27,15 +32,27 @@ impl<'a> BwtBuilder<'a> {
         Ok(self)
     }
 
-    pub fn build(&self) -> Vec<u8> {
-        eprintln!("Text length: {}", self.text.len());
-        eprintln!("Chunk size: {}", self.chunk_size);
+    pub fn verbose(mut self, verbose: bool) -> Self {
+        self.verbose = verbose;
+        self
+    }
 
-        let n_expected_cuts = self.text.len() / self.chunk_size;
-        eprintln!("Generating {n_expected_cuts} cuts...");
-        let cuts = CutGenerator::generate(self.text, self.chunk_size);
+    pub fn build(&self) -> Vec<u8> {
+        assert!(!self.text.is_empty());
+        assert_ne!(self.chunk_size, 0);
+
+        let text = self.text;
+        let chunk_size = self.chunk_size;
+        let n_expected_cuts = text.len() / chunk_size;
+
+        eprintln!("Text length: {:?} MiB", to_mib(text.len()));
+        eprintln!("Chunk size: {:?} M", to_mb(chunk_size));
+        eprintln!("Expected number of cuts: {:?}", n_expected_cuts);
+
+        eprintln!("Generating cuts...");
+        let cuts = CutGenerator::generate(text, chunk_size);
         eprintln!("Generating BWT...");
-        bwt_from_cuts(self.text, &cuts)
+        bwt_from_cuts(text, &cuts)
     }
 }
 
@@ -44,28 +61,28 @@ impl<'a> BwtBuilder<'a> {
 /// * `text` - The text to be transformed.
 /// * `cuts` - Minimal set of prefixes that each prefix starts no more than b suffixes of `text`.
 fn bwt_from_cuts(text: &[u8], cuts: &[Vec<u8>]) -> Vec<u8> {
-    assert!(cuts[0].is_empty(), "cuts[0] must be empty.");
+    assert!(cuts[0].is_empty());
 
     let text = text.as_ref();
     let mut bwt = Vec::with_capacity(text.len());
     let mut chunks = vec![];
 
     for q in 1..=cuts.len() {
-        if q % 100 == 0 {
-            eprintln!("{} cuts processed.", q);
-        }
+        eprintln!("Generating BWT: {}/{}", q, cuts.len());
         if q < cuts.len() {
+            let cut_p = cuts[q - 1].as_slice();
+            let cut_q = cuts[q].as_slice();
             for j in 0..text.len() {
-                let cut_p = cuts[q - 1].as_slice();
-                let cut_q = cuts[q].as_slice();
-                if cut_p < &text[j..] && &text[j..] <= cut_q {
+                let suffix = &text[j..];
+                if cut_p < suffix && suffix <= cut_q {
                     chunks.push(j);
                 }
             }
         } else {
+            let cut_p = cuts[q - 1].as_slice();
             for j in 0..text.len() {
-                let cut_p = cuts[q - 1].as_slice();
-                if cut_p < &text[j..] {
+                let suffix = &text[j..];
+                if cut_p < suffix {
                     chunks.push(j);
                 }
             }
@@ -114,11 +131,9 @@ impl<'a> CutGenerator<'a> {
             *cut.last_mut().unwrap() = symbol as u8;
             if freq <= self.chunk_size {
                 if self.lens.is_empty() || *self.lens.last().unwrap() + freq > self.chunk_size {
+                    eprintln!("Generating cuts: {:?}", self.cuts.len());
                     self.cuts.push(vec![]);
                     self.lens.push(0);
-                    if self.cuts.len() % 100 == 0 {
-                        eprintln!("{} cuts generated.", self.cuts.len());
-                    }
                 }
                 *self.cuts.last_mut().unwrap() = cut.clone();
                 *self.lens.last_mut().unwrap() += freq;
@@ -140,6 +155,14 @@ fn symbol_freqs(text: &[u8], cut: &[u8]) -> Vec<usize> {
         }
     }
     freqs
+}
+
+fn to_mb(bytes: usize) -> f64 {
+    bytes as f64 / 1000.0 / 1000.0
+}
+
+fn to_mib(bytes: usize) -> f64 {
+    bytes as f64 / 1024.0 / 1024.0
 }
 
 #[cfg(test)]

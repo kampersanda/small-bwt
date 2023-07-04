@@ -4,6 +4,7 @@ use std::io::Read;
 use std::io::Write;
 
 use clap::Parser;
+use small_bwt::BwtBuilder;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -18,7 +19,7 @@ struct Args {
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     let text = read_text(&args.input_file)?;
-    let bwt = small_bwt::compute_bwt(&text, 1 << 16)?;
+    let bwt = BwtBuilder::new(&text).build()?;
 
     let mut output_file = File::create(&args.output_file)?;
     output_file.write_all(&bwt)?;

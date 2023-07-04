@@ -2,6 +2,24 @@
 //!
 use anyhow::{anyhow, Result};
 
+///
+pub struct BwtBuilder<'a> {
+    text: &'a [u8],
+    chunk_size: usize,
+}
+
+impl<'a> BwtBuilder<'a> {
+    pub fn new(text: &'a [u8]) -> Self {
+        let n = text.len() as f64;
+        let chunk_size = (n / n.log2()).ceil() as usize;
+        Self { text, chunk_size }
+    }
+
+    pub fn build(&self) -> Result<Vec<u8>> {
+        compute_bwt(self.text, self.chunk_size)
+    }
+}
+
 /// Computes the Burrows-Wheeler transform of the given text in a chunking manner.
 ///
 pub fn compute_bwt(text: &[u8], chunk_size: usize) -> Result<Vec<u8>> {

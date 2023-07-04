@@ -9,32 +9,34 @@ pub struct BwtBuilder<'a> {
 }
 
 impl<'a> BwtBuilder<'a> {
-    pub fn new(text: &'a [u8]) -> Self {
+    pub fn new(text: &'a [u8]) -> Result<Self> {
+        if text.is_empty() {
+            return Err(anyhow!("text must not be empty."));
+        }
         let n = text.len() as f64;
         let chunk_size = (n / n.log2()).ceil() as usize;
-        Self { text, chunk_size }
+        let chunk_size = chunk_size.max(1);
+        Ok(Self { text, chunk_size })
     }
 
-    pub fn build(&self) -> Result<Vec<u8>> {
-        compute_bwt(self.text, self.chunk_size)
+    pub fn chunk_size(mut self, chunk_size: usize) -> Result<Self> {
+        if chunk_size == 0 {
+            return Err(anyhow!("chunk_size must be positive."));
+        }
+        self.chunk_size = chunk_size;
+        Ok(self)
     }
-}
 
-/// Computes the Burrows-Wheeler transform of the given text in a chunking manner.
-///
-pub fn compute_bwt(text: &[u8], chunk_size: usize) -> Result<Vec<u8>> {
-    if text.is_empty() {
-        return Err(anyhow!("text must not be empty."));
-    }
-    if chunk_size == 0 {
-        return Err(anyhow!("chunk_size must be positive."));
-    }
-    let n_expected_cuts = text.len() / chunk_size;
+    pub fn build(&self) -> Vec<u8> {
+        eprintln!("Text length: {}", self.text.len());
+        eprintln!("Chunk size: {}", self.chunk_size);
 
-    eprintln!("Generating {n_expected_cuts} cuts...");
-    let cuts = CutGenerator::generate(text, chunk_size);
-    eprintln!("Generating BWT...");
-    Ok(bwt_from_cuts(text, &cuts))
+        let n_expected_cuts = self.text.len() / self.chunk_size;
+        eprintln!("Generating {n_expected_cuts} cuts...");
+        let cuts = CutGenerator::generate(self.text, self.chunk_size);
+        eprintln!("Generating BWT...");
+        bwt_from_cuts(self.text, &cuts)
+    }
 }
 
 /// # Arguments
@@ -103,7 +105,7 @@ impl<'a> CutGenerator<'a> {
     }
 
     fn expand(&mut self, mut cut: Vec<u8>) {
-        let freqs = Self::symbol_freqs(self.text, &cut);
+        let freqs = symbol_freqs(self.text, &cut);
         cut.push(0); // dummy last symbol
         for (symbol, &freq) in freqs.iter().enumerate() {
             if freq == 0 {
@@ -125,19 +127,19 @@ impl<'a> CutGenerator<'a> {
             }
         }
     }
+}
 
-    /// Computes the frequencies of symbols following cut in text.
-    fn symbol_freqs(text: &[u8], cut: &[u8]) -> Vec<usize> {
-        let cut = cut.as_ref();
-        let mut freqs = vec![0; 256];
-        for j in cut.len()..text.len() {
-            let i = j - cut.len();
-            if cut == &text[i..j] {
-                freqs[text[j] as usize] += 1;
-            }
+/// Computes the frequencies of symbols following cut in text.
+fn symbol_freqs(text: &[u8], cut: &[u8]) -> Vec<usize> {
+    let cut = cut.as_ref();
+    let mut freqs = vec![0; 256];
+    for j in cut.len()..text.len() {
+        let i = j - cut.len();
+        if cut == &text[i..j] {
+            freqs[text[j] as usize] += 1;
         }
-        freqs
     }
+    freqs
 }
 
 #[cfg(test)]
@@ -145,9 +147,21 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_bwt_builder() {
+        let text = "abracadabra$";
+        let bwt = BwtBuilder::new(text.as_bytes()).unwrap().build();
+        let bwt_str = String::from_utf8_lossy(&bwt);
+        assert_eq!(bwt_str, "ard$rcaaaabb");
+    }
+
+    #[test]
     fn test_bwt_builder_3() {
         let text = "abracadabra$";
-        let bwt = compute_bwt(text.as_bytes(), 3).unwrap();
+        let bwt = BwtBuilder::new(text.as_bytes())
+            .unwrap()
+            .chunk_size(3)
+            .unwrap()
+            .build();
         let bwt_str = String::from_utf8_lossy(&bwt);
         assert_eq!(bwt_str, "ard$rcaaaabb");
     }
@@ -155,7 +169,11 @@ mod tests {
     #[test]
     fn test_bwt_builder_4() {
         let text = "abracadabra$";
-        let bwt = compute_bwt(text.as_bytes(), 4).unwrap();
+        let bwt = BwtBuilder::new(text.as_bytes())
+            .unwrap()
+            .chunk_size(4)
+            .unwrap()
+            .build();
         let bwt_str = String::from_utf8_lossy(&bwt);
         assert_eq!(bwt_str, "ard$rcaaaabb");
     }
@@ -189,7 +207,7 @@ mod tests {
     fn test_symbol_freqs() {
         let text = b"abracadabra$";
         let cut = b"ra";
-        let freqs = CutGenerator::symbol_freqs(text, cut);
+        let freqs = symbol_freqs(text, cut);
         let mut expected = vec![0; 256];
         expected[b'$' as usize] = 1;
         expected[b'c' as usize] = 1;
@@ -200,7 +218,7 @@ mod tests {
     fn test_symbol_freqs_empty() {
         let text = b"abracadabra$";
         let cut = b"";
-        let freqs = CutGenerator::symbol_freqs(text, cut);
+        let freqs = symbol_freqs(text, cut);
         let mut expected = vec![0; 256];
         expected[b'$' as usize] = 1;
         expected[b'a' as usize] = 5;

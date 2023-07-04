@@ -19,7 +19,7 @@ struct Args {
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     let text = read_text(&args.input_file)?;
-    let bwt = BwtBuilder::new(&text).build()?;
+    let bwt = BwtBuilder::new(&text)?.build();
 
     let mut output_file = File::create(&args.output_file)?;
     output_file.write_all(&bwt)?;

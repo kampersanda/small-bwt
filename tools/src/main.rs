@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fs::File;
+use std::io::BufWriter;
 use std::io::Read;
-use std::io::Write;
 
 use clap::Parser;
 use small_bwt::BwtBuilder;
@@ -19,11 +19,8 @@ struct Args {
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     let text = read_text(&args.input_file)?;
-    let bwt = BwtBuilder::new(&text)?.build();
-
-    let mut output_file = File::create(&args.output_file)?;
-    output_file.write_all(&bwt)?;
-
+    let writer = BufWriter::new(File::create(&args.output_file)?);
+    BwtBuilder::new(&text)?.build(writer)?;
     Ok(())
 }
 

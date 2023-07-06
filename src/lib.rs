@@ -1,5 +1,7 @@
 //!
 //!
+use std::io::Write;
+
 use anyhow::{anyhow, Result};
 
 ///
@@ -37,7 +39,7 @@ impl<'a> BwtBuilder<'a> {
         self
     }
 
-    pub fn build(&self) -> Vec<u8> {
+    pub fn build<W: Write>(&self, wrt: W) -> Result<()> {
         assert!(!self.text.is_empty());
         assert_ne!(self.chunk_size, 0);
 
@@ -52,7 +54,7 @@ impl<'a> BwtBuilder<'a> {
         eprintln!("Generating cuts...");
         let cuts = CutGenerator::generate(text, chunk_size);
         eprintln!("Generating BWT...");
-        bwt_from_cuts(text, &cuts)
+        bwt_from_cuts(text, &cuts, wrt)
     }
 }
 
@@ -60,11 +62,10 @@ impl<'a> BwtBuilder<'a> {
 ///
 /// * `text` - The text to be transformed.
 /// * `cuts` - Minimal set of prefixes that each prefix starts no more than b suffixes of `text`.
-fn bwt_from_cuts(text: &[u8], cuts: &[Vec<u8>]) -> Vec<u8> {
+fn bwt_from_cuts<W: Write>(text: &[u8], cuts: &[Vec<u8>], mut wrt: W) -> Result<()> {
     assert!(cuts[0].is_empty());
 
     let text = text.as_ref();
-    let mut bwt = Vec::with_capacity(text.len());
     let mut chunks = vec![];
 
     for q in 1..=cuts.len() {
@@ -90,15 +91,16 @@ fn bwt_from_cuts(text: &[u8], cuts: &[Vec<u8>]) -> Vec<u8> {
         // TODO: Use radix sort.
         chunks.sort_by(|&a, &b| text[a..].cmp(&text[b..]));
         for &j in &chunks {
-            bwt.push(if j == 0 {
+            let c = if j == 0 {
                 *text.last().unwrap()
             } else {
                 text[j - 1]
-            });
+            };
+            wrt.write_all(&[c])?;
         }
         chunks.clear();
     }
-    bwt
+    Ok(())
 }
 
 ///
@@ -172,7 +174,11 @@ mod tests {
     #[test]
     fn test_bwt_builder() {
         let text = "abracadabra$";
-        let bwt = BwtBuilder::new(text.as_bytes()).unwrap().build();
+        let mut bwt = vec![];
+        BwtBuilder::new(text.as_bytes())
+            .unwrap()
+            .build(&mut bwt)
+            .unwrap();
         let bwt_str = String::from_utf8_lossy(&bwt);
         assert_eq!(bwt_str, "ard$rcaaaabb");
     }
@@ -180,11 +186,13 @@ mod tests {
     #[test]
     fn test_bwt_builder_3() {
         let text = "abracadabra$";
-        let bwt = BwtBuilder::new(text.as_bytes())
+        let mut bwt = vec![];
+        BwtBuilder::new(text.as_bytes())
             .unwrap()
             .chunk_size(3)
             .unwrap()
-            .build();
+            .build(&mut bwt)
+            .unwrap();
         let bwt_str = String::from_utf8_lossy(&bwt);
         assert_eq!(bwt_str, "ard$rcaaaabb");
     }
@@ -192,11 +200,13 @@ mod tests {
     #[test]
     fn test_bwt_builder_4() {
         let text = "abracadabra$";
-        let bwt = BwtBuilder::new(text.as_bytes())
+        let mut bwt = vec![];
+        BwtBuilder::new(text.as_bytes())
             .unwrap()
             .chunk_size(4)
             .unwrap()
-            .build();
+            .build(&mut bwt)
+            .unwrap();
         let bwt_str = String::from_utf8_lossy(&bwt);
         assert_eq!(bwt_str, "ard$rcaaaabb");
     }
@@ -212,7 +222,8 @@ mod tests {
             b"d".to_vec(),
             b"r".to_vec(),
         ];
-        let bwt = bwt_from_cuts(text, cuts);
+        let mut bwt = vec![];
+        bwt_from_cuts(text, cuts, &mut bwt).unwrap();
         let bwt_str = String::from_utf8_lossy(&bwt);
         assert_eq!(bwt_str, "ard$rcaaaabb");
     }
@@ -221,7 +232,8 @@ mod tests {
     fn test_bwt_from_cuts_4() {
         let text = b"abracadabra$";
         let cuts = &[b"".to_vec(), b"ab".to_vec(), b"b".to_vec(), b"r".to_vec()];
-        let bwt = bwt_from_cuts(text, cuts);
+        let mut bwt = vec![];
+        bwt_from_cuts(text, cuts, &mut bwt).unwrap();
         let bwt_str = String::from_utf8_lossy(&bwt);
         assert_eq!(bwt_str, "ard$rcaaaabb");
     }

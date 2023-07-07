@@ -2,6 +2,15 @@
 name = "small-bwt"
 version = "0.1.0"
 edition = "2021"
+authors = ["Shunsuke Kanda (kampersanda) <shnsk.knd@gmail.com>"]
+description = "BWT construction in small space"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+documentation = "https://docs.rs/small-bwt"
+repository = "https://github.com/kampersanda/small-bwt"
+homepage = "https://github.com/kampersanda/small-bwt"
+keywords = ["compression", "string-processing"]
+categories = ["algorithms", "text-processing"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

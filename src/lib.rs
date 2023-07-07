@@ -6,7 +6,37 @@ use std::io::Write;
 
 use anyhow::{anyhow, Result};
 
+/// Verifies that the text ends with the smallest special character.
+///
+/// # Arguments
+///
+/// * `text` - The text to be verified.
+///
+/// # Errors
+///
+/// An error is returned if `text` is empty or does not end with the smallest special character.
+pub fn verify_terminal_symbol(text: &[u8]) -> Result<()> {
+    if text.is_empty() {
+        return Err(anyhow!("text must not be empty."));
+    }
+    let smallest = *text.last().unwrap();
+    for (i, &c) in text[..text.len() - 1].iter().enumerate() {
+        if c <= smallest {
+            return Err(anyhow!(
+                "text must have the smallest special character only at the end, but found {c:?} at position {i}."
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// BWT builder in small space.
+///
+/// # Specifications
+///
+/// This assumes that the text ends with the smallest special character (e.g., `\0`).
+/// Given an unexpected text, the behavior is undefined.
+/// If you want to verify the text, use [`verify_terminal_symbol`].
 ///
 /// # Examples
 ///

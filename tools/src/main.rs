@@ -14,13 +14,21 @@ struct Args {
 
     #[arg(short = 'o', long)]
     output_file: String,
+
+    #[arg(short = 'c', long)]
+    chunk_size: Option<usize>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     let text = read_text(&args.input_file)?;
     let writer = BufWriter::new(File::create(&args.output_file)?);
-    BwtBuilder::new(&text)?.build(writer)?;
+    let builder = if let Some(chunk_size) = args.chunk_size {
+        BwtBuilder::new(&text)?.chunk_size(chunk_size)?
+    } else {
+        BwtBuilder::new(&text)?
+    };
+    builder.build(writer)?;
     Ok(())
 }
 

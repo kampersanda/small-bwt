@@ -34,7 +34,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     } else {
         BwtBuilder::new(&text)?
     };
-    builder.build(writer)?;
+    builder.verbose(true).build(writer)?;
     Ok(())
 }
 

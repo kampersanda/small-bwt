@@ -11,8 +11,10 @@ https://docs.rs/small-bwt/
 
 ## Command line tool
 
+`tools` provides a command line tool to construct the BWT of a file.
+
 ```
-$ cargo run --release -p tools -- -i ~/data/pizzachili/text/english.50MB -o bwt.50MB.txt -t
+$ cargo run --release -p tools -- -i english.50MB -o english.50MB.bwt -t
 ```
 
 ## Licensing

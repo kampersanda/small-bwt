@@ -8,44 +8,6 @@ use std::io::Write;
 
 use anyhow::{anyhow, Result};
 
-/// Verifies that the smallest character appears only at the end of the text.
-///
-/// # Arguments
-///
-/// * `text` - The text to be verified.
-///
-/// # Errors
-///
-/// An error is returned if the smallest character does not appear only at the end of the text.
-///
-/// # Examples
-///
-/// ```
-/// use small_bwt::verify_terminal_character;
-///
-/// let text = "abracadabra$";
-/// let result = verify_terminal_character(text.as_bytes());
-/// assert!(result.is_ok());
-///
-/// let text = "abrac$dabra$";
-/// let result = verify_terminal_character(text.as_bytes());
-/// assert!(result.is_err());
-/// ```
-pub fn verify_terminal_character(text: &[u8]) -> Result<()> {
-    if text.is_empty() {
-        return Err(anyhow!("text must not be empty."));
-    }
-    let smallest = *text.last().unwrap();
-    for (i, &c) in text[..text.len() - 1].iter().enumerate() {
-        if c <= smallest {
-            return Err(anyhow!(
-                "text must have the smallest special character only at the end, but found {c:?} at position {i}."
-            ));
-        }
-    }
-    Ok(())
-}
-
 /// BWT builder in small space.
 ///
 /// # Specifications
@@ -290,6 +252,44 @@ fn to_mb(bytes: usize) -> f64 {
 
 fn to_mib(bytes: usize) -> f64 {
     bytes as f64 / 1024.0 / 1024.0
+}
+
+/// Verifies that the smallest character appears only at the end of the text.
+///
+/// # Arguments
+///
+/// * `text` - The text to be verified.
+///
+/// # Errors
+///
+/// An error is returned if the smallest character does not appear only at the end of the text.
+///
+/// # Examples
+///
+/// ```
+/// use small_bwt::verify_terminal_character;
+///
+/// let text = "abracadabra$";
+/// let result = verify_terminal_character(text.as_bytes());
+/// assert!(result.is_ok());
+///
+/// let text = "abrac$dabra$";
+/// let result = verify_terminal_character(text.as_bytes());
+/// assert!(result.is_err());
+/// ```
+pub fn verify_terminal_character(text: &[u8]) -> Result<()> {
+    if text.is_empty() {
+        return Err(anyhow!("text must not be empty."));
+    }
+    let smallest = *text.last().unwrap();
+    for (i, &c) in text[..text.len() - 1].iter().enumerate() {
+        if c <= smallest {
+            return Err(anyhow!(
+                "text must have the smallest special character only at the end, but found {c:?} at position {i}."
+            ));
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]

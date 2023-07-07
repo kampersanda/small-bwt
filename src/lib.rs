@@ -6,7 +6,7 @@ use std::io::Write;
 
 use anyhow::{anyhow, Result};
 
-/// Builder of the BWT in small space.
+/// BWT builder in small space.
 ///
 /// # Examples
 ///

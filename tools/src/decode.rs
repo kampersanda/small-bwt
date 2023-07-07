@@ -6,12 +6,17 @@ use std::io::Write;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(
+    author,
+    version,
+    about,
+    long_about = "Decodes the original text from a given BWT. This is for debugging purposes and runs slowly."
+)]
 struct Args {
-    #[arg(short = 'i', long)]
+    #[arg(short = 'i', long, help = "Path to an input bwt file")]
     input_file: String,
 
-    #[arg(short = 'o', long)]
+    #[arg(short = 'o', long, help = "Path to an output text file")]
     output_file: String,
 }
 

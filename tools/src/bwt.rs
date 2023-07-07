@@ -7,18 +7,27 @@ use clap::Parser;
 use small_bwt::BwtBuilder;
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(
+    author,
+    version,
+    about,
+    long_about = "Constructs the BWT of the given text."
+)]
 struct Args {
-    #[arg(short = 'i', long)]
+    #[arg(short = 'i', long, help = "Path to an input text file")]
     input_file: String,
 
-    #[arg(short = 'o', long)]
+    #[arg(short = 'o', long, help = "Path to an output bwt file")]
     output_file: String,
 
-    #[arg(short = 'c', long)]
+    #[arg(short = 'c', long, help = "Optional parameter for chunk size")]
     chunk_size: Option<usize>,
 
-    #[arg(short = 't', long)]
+    #[arg(
+        short = 't',
+        long,
+        help = "Flag to add a special terminal character \\0"
+    )]
     teriminator: bool,
 }
 

@@ -297,7 +297,7 @@ pub fn verify_terminal_character(text: &[u8]) -> Result<()> {
     Ok(())
 }
 
-/// Decodes the Burrows-Wheeler transform of a text.
+/// Decodes the original text from a given BWT.
 ///
 /// It runs in `O(n^2)` time and `O(n log s)` bits of space,
 /// where `n` is the length of the text and `s` is the size of the alphabet.

@@ -19,17 +19,17 @@ use anyhow::{anyhow, Result};
 /// # Examples
 ///
 /// ```
-/// use small_bwt::verify_terminal_symbol;
+/// use small_bwt::verify_terminal_character;
 ///
 /// let text = "abracadabra$";
-/// let result = verify_terminal_symbol(text.as_bytes());
+/// let result = verify_terminal_character(text.as_bytes());
 /// assert!(result.is_ok());
 ///
 /// let text = "abrac$dabra$";
-/// let result = verify_terminal_symbol(text.as_bytes());
+/// let result = verify_terminal_character(text.as_bytes());
 /// assert!(result.is_err());
 /// ```
-pub fn verify_terminal_symbol(text: &[u8]) -> Result<()> {
+pub fn verify_terminal_character(text: &[u8]) -> Result<()> {
     if text.is_empty() {
         return Err(anyhow!("text must not be empty."));
     }
@@ -50,7 +50,7 @@ pub fn verify_terminal_symbol(text: &[u8]) -> Result<()> {
 ///
 /// This assumes that the smallest character appears only at the end of the text.
 /// Given an unexpected text, the behavior is undefined.
-/// If you want to verify the text, use [`verify_terminal_symbol`].
+/// If you want to verify the text, use [`verify_terminal_character`].
 ///
 /// # Examples
 ///
@@ -102,6 +102,10 @@ impl<'a> BwtBuilder<'a> {
     ///
     /// * `chunk_size` - The chunk size.
     ///
+    /// # Default value
+    ///
+    /// `ceil(n / log2(n))`, where `n` is the text length.
+    ///
     /// # Errors
     ///
     /// An error is returned if `chunk_size` is zero.
@@ -119,6 +123,10 @@ impl<'a> BwtBuilder<'a> {
     /// # Arguments
     ///
     /// * `verbose` - The verbosity.
+    ///
+    /// # Default value
+    ///
+    /// `false`
     pub fn verbose(mut self, verbose: bool) -> Self {
         self.progress = Progress::new(verbose);
         self
@@ -130,7 +138,7 @@ impl<'a> BwtBuilder<'a> {
     ///
     /// This assumes that the smallest character appears only at the end of the text.
     /// Given an unexpected text, the behavior is undefined.
-    /// If you want to verify the text, use [`verify_terminal_symbol`].
+    /// If you want to verify the text, use [`verify_terminal_character`].
     ///
     /// # Arguments
     ///

@@ -104,7 +104,11 @@ impl<'a> BwtBuilder<'a> {
         self.progress
             .print(&format!("Expected number of cuts: {:?}", n_expected_cuts));
 
-        let cuts = CutGenerator::generate(text, chunk_size, &self.progress);
+        self.progress.print("Generating cuts...");
+        let cuts = CutGenerator::generate(text, chunk_size);
+        self.progress
+            .print(&format!("Actual number of cuts: {:?}", cuts.len()));
+
         bwt_from_cuts(text, &cuts, wrt, &self.progress)
     }
 }
@@ -116,7 +120,6 @@ fn bwt_from_cuts<W: Write>(
     progress: &Progress,
 ) -> Result<()> {
     assert!(cuts[0].is_empty());
-    progress.print("Generating BWT...");
 
     let text = text.as_ref();
     let mut chunks = vec![];
@@ -161,27 +164,21 @@ struct CutGenerator<'a> {
     chunk_size: usize,
     cuts: Vec<Vec<u8>>,
     lens: Vec<usize>,
-    progress: &'a Progress,
 }
 
 impl<'a> CutGenerator<'a> {
-    fn generate(text: &'a [u8], chunk_size: usize, progress: &'a Progress) -> Vec<Vec<u8>> {
-        progress.print("Generating cuts...");
-
+    fn generate(text: &'a [u8], chunk_size: usize) -> Vec<Vec<u8>> {
         let mut builder = Self {
             text,
             chunk_size,
             cuts: vec![vec![]],
             lens: vec![],
-            progress,
         };
         builder.expand(vec![]);
         builder.cuts
     }
 
     fn expand(&mut self, mut cut: Vec<u8>) {
-        self.progress
-            .print(&format!("Generating cuts: {:?}", self.cuts.len()));
         let freqs = symbol_freqs(self.text, &cut);
         cut.push(0); // dummy last symbol
         for (symbol, &freq) in freqs.iter().enumerate() {
@@ -193,8 +190,6 @@ impl<'a> CutGenerator<'a> {
                 if self.lens.is_empty() || *self.lens.last().unwrap() + freq > self.chunk_size {
                     self.cuts.push(vec![]);
                     self.lens.push(0);
-                    self.progress
-                        .print(&format!("Generating cuts: {:?}", self.cuts.len()));
                 }
                 *self.cuts.last_mut().unwrap() = cut.clone();
                 *self.lens.last_mut().unwrap() += freq;

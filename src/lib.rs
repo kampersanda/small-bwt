@@ -145,6 +145,8 @@ fn bwt_from_cuts<W: Write>(
     let mut chunks = vec![];
     for q in 1..=cuts.len() {
         progress.print(&format!("Generating BWT: {}/{}", q, cuts.len()));
+        progress.print(&format!("Length of the cut: {:?}", cuts[q - 1].len()));
+
         let cut_p = cuts[q - 1].as_slice();
         if q < cuts.len() {
             let cut_q = cuts[q].as_slice();
@@ -162,8 +164,11 @@ fn bwt_from_cuts<W: Write>(
                 }
             }
         }
+
+        progress.print(&format!("Length of chunks: {:?}", chunks.len()));
+
         // TODO: Use radix sort.
-        chunks.sort_by(|&a, &b| text[a..].cmp(&text[b..]));
+        chunks.sort_unstable_by(|&a, &b| text[a..].cmp(&text[b..]));
         for &j in &chunks {
             let c = if j == 0 {
                 *text.last().unwrap()
@@ -292,7 +297,7 @@ pub fn verify_terminal_character(text: &[u8]) -> Result<()> {
     Ok(())
 }
 
-/// Decodes the Burrows-Wheeler transform of a text.
+/// Decodes the original text from a given BWT.
 ///
 /// It runs in `O(n^2)` time and `O(n log s)` bits of space,
 /// where `n` is the length of the text and `s` is the size of the alphabet.

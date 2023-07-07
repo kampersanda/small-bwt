@@ -9,6 +9,12 @@ Gonzalo Navarro, 2016.
 
 https://docs.rs/small-bwt/
 
+## Command line tool
+
+```
+$ cargo run --release -p tools -- -i ~/data/pizzachili/text/english.50MB -o bwt.50MB.txt -t
+```
+
 ## Licensing
 
 Licensed under either of

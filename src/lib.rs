@@ -1,17 +1,43 @@
-//!
-//!
+//! Implementation of the BWT construction algorithm in small space,
+//! described in Algorithm 11.8 of the book:
+//! [Compact Data Structures - A Practical Approach](https://users.dcc.uchile.cl/~gnavarro/CDSbook/),
+//! Gonzalo Navarro, 2016.
 use std::io::Write;
 
 use anyhow::{anyhow, Result};
 
+/// Builder of the BWT in small space.
 ///
+/// # Examples
+///
+/// ```
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// use small_bwt::BwtBuilder;
+///
+/// let text = "abracadabra$";
+/// let mut bwt = vec![];
+/// BwtBuilder::new(text.as_bytes())?.build(&mut bwt)?;
+/// let bwt_str = String::from_utf8_lossy(&bwt);
+/// assert_eq!(bwt_str, "ard$rcaaaabb");
+/// # Ok(())
+/// # }
+/// ```
 pub struct BwtBuilder<'a> {
     text: &'a [u8],
     chunk_size: usize,
-    verbose: bool,
+    progress: Progress,
 }
 
 impl<'a> BwtBuilder<'a> {
+    /// Creates a new builder.
+    ///
+    /// # Arguments
+    ///
+    /// * `text` - The text to be transformed.
+    ///
+    /// # Errors
+    ///
+    /// An error is returned if `text` is empty.
     pub fn new(text: &'a [u8]) -> Result<Self> {
         if text.is_empty() {
             return Err(anyhow!("text must not be empty."));
@@ -22,10 +48,19 @@ impl<'a> BwtBuilder<'a> {
         Ok(Self {
             text,
             chunk_size,
-            verbose: false,
+            progress: Progress::new(false),
         })
     }
 
+    /// Sets the chunk size.
+    ///
+    /// # Arguments
+    ///
+    /// * `chunk_size` - The chunk size.
+    ///
+    /// # Errors
+    ///
+    /// An error is returned if `chunk_size` is zero.
     pub fn chunk_size(mut self, chunk_size: usize) -> Result<Self> {
         if chunk_size == 0 {
             return Err(anyhow!("chunk_size must be positive."));
@@ -34,11 +69,26 @@ impl<'a> BwtBuilder<'a> {
         Ok(self)
     }
 
+    /// Sets the verbosity.
+    /// If `verbose` is `true`, the progress is printed to stderr.
+    ///
+    /// # Arguments
+    ///
+    /// * `verbose` - The verbosity.
     pub fn verbose(mut self, verbose: bool) -> Self {
-        self.verbose = verbose;
+        self.progress = Progress::new(verbose);
         self
     }
 
+    /// Builds the BWT and writes it to `wrt`.
+    ///
+    /// # Arguments
+    ///
+    /// * `wrt` - The writer to write the BWT.
+    ///
+    /// # Errors
+    ///
+    /// An error is returned if `wrt` returns an error.
     pub fn build<W: Write>(&self, wrt: W) -> Result<()> {
         assert!(!self.text.is_empty());
         assert_ne!(self.chunk_size, 0);
@@ -47,14 +97,15 @@ impl<'a> BwtBuilder<'a> {
         let chunk_size = self.chunk_size;
         let n_expected_cuts = text.len() / chunk_size;
 
-        eprintln!("Text length: {:?} MiB", to_mib(text.len()));
-        eprintln!("Chunk size: {:?} M", to_mb(chunk_size));
-        eprintln!("Expected number of cuts: {:?}", n_expected_cuts);
+        self.progress
+            .print(&format!("Text length: {:?} MiB", to_mib(text.len())));
+        self.progress
+            .print(&format!("Chunk size: {:?} M", to_mb(chunk_size)));
+        self.progress
+            .print(&format!("Expected number of cuts: {:?}", n_expected_cuts));
 
-        eprintln!("Generating cuts...");
-        let cuts = CutGenerator::generate(text, chunk_size);
-        eprintln!("Generating BWT...");
-        bwt_from_cuts(text, &cuts, wrt)
+        let cuts = CutGenerator::generate(text, chunk_size, &self.progress);
+        bwt_from_cuts(text, &cuts, wrt, &self.progress)
     }
 }
 
@@ -62,14 +113,20 @@ impl<'a> BwtBuilder<'a> {
 ///
 /// * `text` - The text to be transformed.
 /// * `cuts` - Minimal set of prefixes that each prefix starts no more than b suffixes of `text`.
-fn bwt_from_cuts<W: Write>(text: &[u8], cuts: &[Vec<u8>], mut wrt: W) -> Result<()> {
+fn bwt_from_cuts<W: Write>(
+    text: &[u8],
+    cuts: &[Vec<u8>],
+    mut wrt: W,
+    progress: &Progress,
+) -> Result<()> {
     assert!(cuts[0].is_empty());
+    progress.print("Generating BWT...");
 
     let text = text.as_ref();
     let mut chunks = vec![];
 
     for q in 1..=cuts.len() {
-        eprintln!("Generating BWT: {}/{}", q, cuts.len());
+        progress.print(&format!("Generating BWT: {}/{}", q, cuts.len()));
         if q < cuts.len() {
             let cut_p = cuts[q - 1].as_slice();
             let cut_q = cuts[q].as_slice();
@@ -109,21 +166,27 @@ struct CutGenerator<'a> {
     chunk_size: usize,
     cuts: Vec<Vec<u8>>,
     lens: Vec<usize>,
+    progress: &'a Progress,
 }
 
 impl<'a> CutGenerator<'a> {
-    fn generate(text: &'a [u8], chunk_size: usize) -> Vec<Vec<u8>> {
+    fn generate(text: &'a [u8], chunk_size: usize, progress: &'a Progress) -> Vec<Vec<u8>> {
+        progress.print("Generating cuts...");
+
         let mut builder = Self {
             text,
             chunk_size,
             cuts: vec![vec![]],
             lens: vec![],
+            progress,
         };
         builder.expand(vec![]);
         builder.cuts
     }
 
     fn expand(&mut self, mut cut: Vec<u8>) {
+        self.progress
+            .print(&format!("Generating cuts: {:?}", self.cuts.len()));
         let freqs = symbol_freqs(self.text, &cut);
         cut.push(0); // dummy last symbol
         for (symbol, &freq) in freqs.iter().enumerate() {
@@ -133,9 +196,10 @@ impl<'a> CutGenerator<'a> {
             *cut.last_mut().unwrap() = symbol as u8;
             if freq <= self.chunk_size {
                 if self.lens.is_empty() || *self.lens.last().unwrap() + freq > self.chunk_size {
-                    eprintln!("Generating cuts: {:?}", self.cuts.len());
                     self.cuts.push(vec![]);
                     self.lens.push(0);
+                    self.progress
+                        .print(&format!("Generating cuts: {:?}", self.cuts.len()));
                 }
                 *self.cuts.last_mut().unwrap() = cut.clone();
                 *self.lens.last_mut().unwrap() += freq;
@@ -157,6 +221,22 @@ fn symbol_freqs(text: &[u8], cut: &[u8]) -> Vec<usize> {
         }
     }
     freqs
+}
+
+struct Progress {
+    verbose: bool,
+}
+
+impl Progress {
+    fn new(verbose: bool) -> Self {
+        Self { verbose }
+    }
+
+    fn print(&self, msg: &str) {
+        if self.verbose {
+            eprintln!("{}", msg);
+        }
+    }
 }
 
 fn to_mb(bytes: usize) -> f64 {
@@ -223,7 +303,7 @@ mod tests {
             b"r".to_vec(),
         ];
         let mut bwt = vec![];
-        bwt_from_cuts(text, cuts, &mut bwt).unwrap();
+        bwt_from_cuts(text, cuts, &mut bwt, &Progress::new(false)).unwrap();
         let bwt_str = String::from_utf8_lossy(&bwt);
         assert_eq!(bwt_str, "ard$rcaaaabb");
     }
@@ -233,7 +313,7 @@ mod tests {
         let text = b"abracadabra$";
         let cuts = &[b"".to_vec(), b"ab".to_vec(), b"b".to_vec(), b"r".to_vec()];
         let mut bwt = vec![];
-        bwt_from_cuts(text, cuts, &mut bwt).unwrap();
+        bwt_from_cuts(text, cuts, &mut bwt, &Progress::new(false)).unwrap();
         let bwt_str = String::from_utf8_lossy(&bwt);
         assert_eq!(bwt_str, "ard$rcaaaabb");
     }

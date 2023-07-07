@@ -126,6 +126,12 @@ impl<'a> BwtBuilder<'a> {
 
     /// Builds the BWT and writes it to `wrt`.
     ///
+    /// # Specifications
+    ///
+    /// This assumes that the smallest character appears only at the end of the text.
+    /// Given an unexpected text, the behavior is undefined.
+    /// If you want to verify the text, use [`verify_terminal_symbol`].
+    ///
     /// # Arguments
     ///
     /// * `wrt` - The writer to write the BWT.

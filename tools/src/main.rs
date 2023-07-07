@@ -17,6 +17,9 @@ struct Args {
 
     #[arg(short = 'c', long)]
     chunk_size: Option<usize>,
+
+    #[arg(short = 'v', long)]
+    verbose: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -28,6 +31,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     } else {
         BwtBuilder::new(&text)?
     };
+    let builder = builder.verbose(args.verbose);
     builder.build(writer)?;
     Ok(())
 }

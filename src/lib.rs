@@ -109,10 +109,6 @@ impl<'a> BwtBuilder<'a> {
     }
 }
 
-/// # Arguments
-///
-/// * `text` - The text to be transformed.
-/// * `cuts` - Minimal set of prefixes that each prefix starts no more than b suffixes of `text`.
 fn bwt_from_cuts<W: Write>(
     text: &[u8],
     cuts: &[Vec<u8>],
@@ -160,7 +156,6 @@ fn bwt_from_cuts<W: Write>(
     Ok(())
 }
 
-///
 struct CutGenerator<'a> {
     text: &'a [u8],
     chunk_size: usize,

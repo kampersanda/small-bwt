@@ -292,6 +292,71 @@ pub fn verify_terminal_character(text: &[u8]) -> Result<()> {
     Ok(())
 }
 
+/// Decodes the Burrows-Wheeler transform of a text.
+///
+/// # Arguments
+///
+/// * `bwt` - The Burrows-Wheeler transform of a text.
+///
+/// # Errors
+///
+/// An error is returned if the Burrows-Wheeler transform is invalid.
+///
+/// # Examples
+///
+/// ```
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// use small_bwt::decode_bwt;
+///
+/// let bwt = "ard$rcaaaabb";
+/// let decoded = decode_bwt(bwt.as_bytes())?;
+/// assert_eq!(decoded, "abracadabra$".as_bytes());
+/// # Ok(())
+/// # }
+/// ```
+pub fn decode_bwt(bwt: &[u8]) -> Result<Vec<u8>> {
+    let counts = {
+        let mut counts = vec![0; 256];
+        for &c in bwt {
+            counts[c as usize] += 1;
+        }
+        counts
+    };
+
+    let ranks = {
+        let mut ranks = vec![0; 256];
+        let mut rank = 0;
+        for i in 0..256 {
+            ranks[i] = rank;
+            rank += counts[i];
+        }
+        ranks
+    };
+
+    let terminator = counts.iter().position(|&c| c != 0).unwrap();
+    if counts[terminator] != 1 {
+        return Err(anyhow!(
+            "bwt must have exactly one terminator character, but found {:x} {} times.",
+            terminator,
+            counts[terminator]
+        ));
+    }
+
+    let terminator = terminator as u8;
+
+    let mut decoded = Vec::with_capacity(bwt.len());
+    decoded.push(terminator);
+
+    let mut i = 0;
+    while bwt[i] != terminator {
+        decoded.push(bwt[i]);
+        i = ranks[bwt[i] as usize] + bwt[..i].iter().filter(|&&c| c == bwt[i]).count();
+    }
+    decoded.reverse();
+
+    Ok(decoded)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

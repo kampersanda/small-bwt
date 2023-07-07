@@ -8,44 +8,6 @@ use std::io::Write;
 
 use anyhow::{anyhow, Result};
 
-/// Verifies that the smallest character appears only at the end of the text.
-///
-/// # Arguments
-///
-/// * `text` - The text to be verified.
-///
-/// # Errors
-///
-/// An error is returned if the smallest character does not appear only at the end of the text.
-///
-/// # Examples
-///
-/// ```
-/// use small_bwt::verify_terminal_character;
-///
-/// let text = "abracadabra$";
-/// let result = verify_terminal_character(text.as_bytes());
-/// assert!(result.is_ok());
-///
-/// let text = "abrac$dabra$";
-/// let result = verify_terminal_character(text.as_bytes());
-/// assert!(result.is_err());
-/// ```
-pub fn verify_terminal_character(text: &[u8]) -> Result<()> {
-    if text.is_empty() {
-        return Err(anyhow!("text must not be empty."));
-    }
-    let smallest = *text.last().unwrap();
-    for (i, &c) in text[..text.len() - 1].iter().enumerate() {
-        if c <= smallest {
-            return Err(anyhow!(
-                "text must have the smallest special character only at the end, but found {c:?} at position {i}."
-            ));
-        }
-    }
-    Ok(())
-}
-
 /// BWT builder in small space.
 ///
 /// # Specifications
@@ -290,6 +252,112 @@ fn to_mb(bytes: usize) -> f64 {
 
 fn to_mib(bytes: usize) -> f64 {
     bytes as f64 / 1024.0 / 1024.0
+}
+
+/// Verifies that the smallest character appears only at the end of the text.
+///
+/// # Arguments
+///
+/// * `text` - The text to be verified.
+///
+/// # Errors
+///
+/// An error is returned if the smallest character does not appear only at the end of the text.
+///
+/// # Examples
+///
+/// ```
+/// use small_bwt::verify_terminal_character;
+///
+/// let text = "abracadabra$";
+/// let result = verify_terminal_character(text.as_bytes());
+/// assert!(result.is_ok());
+///
+/// let text = "abrac$dabra$";
+/// let result = verify_terminal_character(text.as_bytes());
+/// assert!(result.is_err());
+/// ```
+pub fn verify_terminal_character(text: &[u8]) -> Result<()> {
+    if text.is_empty() {
+        return Err(anyhow!("text must not be empty."));
+    }
+    let smallest = *text.last().unwrap();
+    for (i, &c) in text[..text.len() - 1].iter().enumerate() {
+        if c <= smallest {
+            return Err(anyhow!(
+                "text must have the smallest special character only at the end, but found {c:?} at position {i}."
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Decodes the Burrows-Wheeler transform of a text.
+///
+/// It runs in `O(n^2)` time and `O(n log s)` bits of space,
+/// where `n` is the length of the text and `s` is the size of the alphabet.
+///
+/// # Arguments
+///
+/// * `bwt` - The Burrows-Wheeler transform of a text.
+///
+/// # Errors
+///
+/// An error is returned if the Burrows-Wheeler transform is invalid.
+///
+/// # Examples
+///
+/// ```
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// use small_bwt::decode_bwt;
+///
+/// let bwt = "ard$rcaaaabb";
+/// let decoded = decode_bwt(bwt.as_bytes())?;
+/// assert_eq!(decoded, "abracadabra$".as_bytes());
+/// # Ok(())
+/// # }
+/// ```
+pub fn decode_bwt(bwt: &[u8]) -> Result<Vec<u8>> {
+    let counts = {
+        let mut counts = vec![0; 256];
+        for &c in bwt {
+            counts[c as usize] += 1;
+        }
+        counts
+    };
+
+    let ranks = {
+        let mut ranks = vec![0; 256];
+        let mut rank = 0;
+        for i in 0..256 {
+            ranks[i] = rank;
+            rank += counts[i];
+        }
+        ranks
+    };
+
+    let terminator = counts.iter().position(|&c| c != 0).unwrap();
+    if counts[terminator] != 1 {
+        return Err(anyhow!(
+            "bwt must have exactly one terminator character, but found {:x} {} times.",
+            terminator,
+            counts[terminator]
+        ));
+    }
+
+    let terminator = terminator as u8;
+
+    let mut decoded = Vec::with_capacity(bwt.len());
+    decoded.push(terminator);
+
+    let mut i = 0;
+    while bwt[i] != terminator {
+        decoded.push(bwt[i]);
+        i = ranks[bwt[i] as usize] + bwt[..i].iter().filter(|&&c| c == bwt[i]).count();
+    }
+    decoded.reverse();
+
+    Ok(decoded)
 }
 
 #[cfg(test)]

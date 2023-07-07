@@ -146,6 +146,7 @@ fn bwt_from_cuts<W: Write>(
     for q in 1..=cuts.len() {
         progress.print(&format!("Generating BWT: {}/{}", q, cuts.len()));
         progress.print(&format!("Length of the cut: {:?}", cuts[q - 1].len()));
+
         let cut_p = cuts[q - 1].as_slice();
         if q < cuts.len() {
             let cut_q = cuts[q].as_slice();
@@ -163,10 +164,11 @@ fn bwt_from_cuts<W: Write>(
                 }
             }
         }
+
         progress.print(&format!("Length of chunks: {:?}", chunks.len()));
 
         // TODO: Use radix sort.
-        chunks.sort_by(|&a, &b| text[a..].cmp(&text[b..]));
+        chunks.sort_unstable_by(|&a, &b| text[a..].cmp(&text[b..]));
         for &j in &chunks {
             let c = if j == 0 {
                 *text.last().unwrap()

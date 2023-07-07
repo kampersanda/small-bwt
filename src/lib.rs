@@ -2,6 +2,8 @@
 //! described in Algorithm 11.8 of the book:
 //! [Compact Data Structures - A Practical Approach](https://users.dcc.uchile.cl/~gnavarro/CDSbook/),
 //! Gonzalo Navarro, 2016.
+#![deny(missing_docs)]
+
 use std::io::Write;
 
 use anyhow::{anyhow, Result};

@@ -11,6 +11,7 @@ repository = "https://github.com/kampersanda/small-bwt"
 homepage = "https://github.com/kampersanda/small-bwt"
 keywords = ["compression", "string-processing"]
 categories = ["algorithms", "text-processing"]
+rust-version = "1.60.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

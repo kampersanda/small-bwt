@@ -127,7 +127,7 @@ impl<'a> BwtBuilder<'a> {
     /// # Default value
     ///
     /// `false`
-    pub fn verbose(mut self, verbose: bool) -> Self {
+    pub const fn verbose(mut self, verbose: bool) -> Self {
         self.progress = Progress::new(verbose);
         self
     }
@@ -178,14 +178,11 @@ fn bwt_from_cuts<W: Write>(
     progress: &Progress,
 ) -> Result<()> {
     assert!(cuts[0].is_empty());
-
-    let text = text.as_ref();
     let mut chunks = vec![];
-
     for q in 1..=cuts.len() {
         progress.print(&format!("Generating BWT: {}/{}", q, cuts.len()));
+        let cut_p = cuts[q - 1].as_slice();
         if q < cuts.len() {
-            let cut_p = cuts[q - 1].as_slice();
             let cut_q = cuts[q].as_slice();
             for j in 0..text.len() {
                 let suffix = &text[j..];
@@ -194,7 +191,6 @@ fn bwt_from_cuts<W: Write>(
                 }
             }
         } else {
-            let cut_p = cuts[q - 1].as_slice();
             for j in 0..text.len() {
                 let suffix = &text[j..];
                 if cut_p < suffix {
@@ -260,7 +256,6 @@ impl<'a> CutGenerator<'a> {
 
 /// Computes the frequencies of symbols following cut in text.
 fn symbol_freqs(text: &[u8], cut: &[u8]) -> Vec<usize> {
-    let cut = cut.as_ref();
     let mut freqs = vec![0; 256];
     for j in cut.len()..text.len() {
         let i = j - cut.len();
@@ -276,7 +271,7 @@ struct Progress {
 }
 
 impl Progress {
-    fn new(verbose: bool) -> Self {
+    const fn new(verbose: bool) -> Self {
         Self { verbose }
     }
 

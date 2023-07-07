@@ -6,7 +6,7 @@ use std::io::Write;
 
 use anyhow::{anyhow, Result};
 
-/// Verifies that the text ends with the smallest special character.
+/// Verifies that the smallest character appears only at the end of the text.
 ///
 /// # Arguments
 ///
@@ -14,7 +14,21 @@ use anyhow::{anyhow, Result};
 ///
 /// # Errors
 ///
-/// An error is returned if `text` is empty or does not end with the smallest special character.
+/// An error is returned if the smallest character does not appear only at the end of the text.
+///
+/// # Examples
+///
+/// ```
+/// use small_bwt::verify_terminal_symbol;
+///
+/// let text = "abracadabra$";
+/// let result = verify_terminal_symbol(text.as_bytes());
+/// assert!(result.is_ok());
+///
+/// let text = "abrac$dabra$";
+/// let result = verify_terminal_symbol(text.as_bytes());
+/// assert!(result.is_err());
+/// ```
 pub fn verify_terminal_symbol(text: &[u8]) -> Result<()> {
     if text.is_empty() {
         return Err(anyhow!("text must not be empty."));
@@ -34,7 +48,7 @@ pub fn verify_terminal_symbol(text: &[u8]) -> Result<()> {
 ///
 /// # Specifications
 ///
-/// This assumes that the text ends with the smallest special character (e.g., `\0`).
+/// This assumes that the smallest character appears only at the end of the text.
 /// Given an unexpected text, the behavior is undefined.
 /// If you want to verify the text, use [`verify_terminal_symbol`].
 ///

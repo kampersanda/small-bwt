@@ -13,6 +13,10 @@ use radixsort::MsdRadixSorter;
 
 /// BWT builder in small space.
 ///
+/// Given a typical text, it runs in `O(n log n log log n)` time and `O(n)` additional bits of space,
+/// where `n` is the length of the input string and the alphabet size is much smaller than `n`.
+/// See the book for more details.
+///
 /// # Specifications
 ///
 /// This assumes that the smallest character appears only at the end of the text.
@@ -44,7 +48,7 @@ impl<'a> BwtBuilder<'a> {
     ///
     /// # Arguments
     ///
-    /// * `text` - The text to be transformed.
+    /// * `text` - The text to be transformed, which should satisfy [`verify_terminal_character`].
     ///
     /// # Errors
     ///
@@ -100,12 +104,6 @@ impl<'a> BwtBuilder<'a> {
     }
 
     /// Builds the BWT and writes it to `wrt`.
-    ///
-    /// # Specifications
-    ///
-    /// This assumes that the smallest character appears only at the end of the text.
-    /// Given an unexpected text, the behavior is undefined.
-    /// If you want to verify the text, use [`verify_terminal_character`].
     ///
     /// # Arguments
     ///

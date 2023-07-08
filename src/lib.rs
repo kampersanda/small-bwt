@@ -48,7 +48,7 @@ use radixsort::MsdRadixSorter;
 ///
 /// This assumes that the smallest character appears only at the end of the text.
 /// Given an unexpected text, the behavior is undefined.
-/// If you want to verify the text, use [`verify_terminal_character`].
+/// If you want to verify the text, use [`verify_terminator`].
 ///
 /// # Examples
 ///
@@ -64,7 +64,7 @@ impl<'a> BwtBuilder<'a> {
     ///
     /// # Arguments
     ///
-    /// * `text` - The text to be transformed, which should satisfy [`verify_terminal_character`].
+    /// * `text` - The text to be transformed, which should satisfy [`verify_terminator`].
     ///
     /// # Errors
     ///
@@ -289,17 +289,17 @@ fn to_mib(bytes: usize) -> f64 {
 /// # Examples
 ///
 /// ```
-/// use small_bwt::verify_terminal_character;
+/// use small_bwt::verify_terminator;
 ///
 /// let text = "abracadabra$";
-/// let result = verify_terminal_character(text.as_bytes());
+/// let result = verify_terminator(text.as_bytes());
 /// assert!(result.is_ok());
 ///
 /// let text = "abrac$dabra$";
-/// let result = verify_terminal_character(text.as_bytes());
+/// let result = verify_terminator(text.as_bytes());
 /// assert!(result.is_err());
 /// ```
-pub fn verify_terminal_character(text: &[u8]) -> Result<()> {
+pub fn verify_terminator(text: &[u8]) -> Result<()> {
     if text.is_empty() {
         return Err(anyhow!("text must not be empty."));
     }
@@ -431,6 +431,13 @@ mod tests {
             .unwrap();
         let bwt_str = String::from_utf8_lossy(&bwt);
         assert_eq!(bwt_str, "ard$rcaaaabb");
+    }
+
+    #[test]
+    fn test_bwt_builder_empty() {
+        let text = "";
+        let e = BwtBuilder::new(text.as_bytes());
+        assert!(e.is_err());
     }
 
     #[test]

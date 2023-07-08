@@ -316,8 +316,8 @@ pub fn verify_terminator(text: &[u8]) -> Result<()> {
 
 /// Decodes the original text from a given BWT.
 ///
-/// It runs in `O(n^2)` time and `O(n log s)` bits of space,
-/// where `n` is the length of the text and `s` is the size of the alphabet.
+/// It runs in `O(n)` time and `O(n log n)` bits of space,
+/// where `n` is the length of the text.
 ///
 /// # Arguments
 ///

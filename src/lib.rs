@@ -372,7 +372,6 @@ pub fn decode_bwt(bwt: &[u8]) -> Result<Vec<u8>> {
             counts[terminator]
         ));
     }
-
     let terminator = terminator as u8;
 
     let mut decoded = Vec::with_capacity(bwt.len());

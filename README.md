@@ -22,7 +22,7 @@ https://docs.rs/small-bwt/
 `tools` provides a command line tool to construct the BWT of a file.
 
 ```shell
-$ cargo run --release -p tools -- -i english.50MB -o english.50MB.bwt -t
+$ cargo run --release -p tools -- -i input.txt -o output.bwt -t
 ```
 
 With a desktop PC (Intel i7, 16 GB), the DNA text of size 385 MiB from [Pizza&Chili Corpus](http://pizzachili.dcc.uchile.cl/texts.html)

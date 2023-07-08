@@ -9,6 +9,8 @@ use std::io::Write;
 
 use anyhow::{anyhow, Result};
 
+use radixsort::MsdRadixSorter;
+
 /// BWT builder in small space.
 ///
 /// # Specifications
@@ -167,9 +169,8 @@ fn bwt_from_cuts<W: Write>(
         }
 
         progress.print(&format!("Length of the chunks: {:?}", chunks.len()));
+        chunks = MsdRadixSorter::sort(text, chunks, 256);
 
-        // TODO: Use radix sort.
-        chunks.sort_unstable_by(|&a, &b| text[a..].cmp(&text[b..]));
         for &j in &chunks {
             let c = if j == 0 {
                 *text.last().unwrap()

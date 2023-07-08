@@ -25,6 +25,9 @@ https://docs.rs/small-bwt/
 $ cargo run --release -p tools -- -i english.50MB -o english.50MB.bwt -t
 ```
 
+With a Desktop PC (Intel i7, 16 GB), the DNA text of size 385 MiB from [Pizza&Chili Corpus](http://pizzachili.dcc.uchile.cl/texts.html)
+was transformed in 6.8 minutes using maximum resident set size of 727 MiB.
+
 ## Benchmarks
 
 `benches` provides benchmarks on the time performance for English texts

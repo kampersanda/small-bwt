@@ -344,22 +344,24 @@ pub fn decode_bwt(bwt: &[u8]) -> Result<Vec<u8>> {
         return Err(anyhow!("bwt must not be empty."));
     }
 
-    let counts = {
+    let (counts, ranks) = {
         let mut counts = vec![0; 256];
-        for &c in bwt {
+        let mut ranks = vec![0; bwt.len()];
+        for (&c, r) in bwt.iter().zip(ranks.iter_mut()) {
+            *r = counts[c as usize];
             counts[c as usize] += 1;
         }
-        counts
+        (counts, ranks)
     };
 
-    let ranks = {
-        let mut ranks = vec![0; 256];
+    let occ = {
+        let mut occ = vec![0; 256];
         let mut rank = 0;
         for i in 0..256 {
-            ranks[i] = rank;
+            occ[i] = rank;
             rank += counts[i];
         }
-        ranks
+        occ
     };
 
     let terminator = counts.iter().position(|&c| c != 0).unwrap();
@@ -380,7 +382,7 @@ pub fn decode_bwt(bwt: &[u8]) -> Result<Vec<u8>> {
     while bwt[i] != terminator {
         assert!(decoded.len() < bwt.len());
         decoded.push(bwt[i]);
-        i = ranks[bwt[i] as usize] + bwt[..i].iter().filter(|&&c| c == bwt[i]).count();
+        i = occ[bwt[i] as usize] + ranks[i];
     }
     decoded.reverse();
 

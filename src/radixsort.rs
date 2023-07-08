@@ -5,6 +5,7 @@ pub struct MsdRadixSorter<'a> {
 }
 
 impl<'a> MsdRadixSorter<'a> {
+    // Assumes that text has a special terminator.
     pub fn sort(text: &'a [u8], suffixes: Vec<usize>, threshold: usize) -> Vec<usize> {
         let n_suffixes = suffixes.len();
         let threshold = threshold.max(1);

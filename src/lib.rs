@@ -1,7 +1,15 @@
+//! # BWT construction in small space
+//!
 //! Implementation of the BWT construction algorithm in small space,
 //! described in Algorithm 11.8 of the book:
 //! [Compact Data Structures - A Practical Approach](https://users.dcc.uchile.cl/~gnavarro/CDSbook/),
 //! Gonzalo Navarro, 2016.
+//!
+//! Given a typical text, it runs in `O(n log n loglog n)` time and `O(n)` additional bits of space,
+//! where `n` is the length of the input string and the alphabet size is much smaller than `n`.
+//! See the book for more details.
+//!
+//! ## Basic Usage
 //!
 //! [`BwtBuilder`] provides a simple interface to build the BWT.
 //! It inputs a byte slice and outputs the BWT to a write stream.
@@ -18,11 +26,9 @@
 //! BwtBuilder::new(text.as_bytes())?.build(&mut bwt)?;
 //! let bwt_str = String::from_utf8_lossy(&bwt);
 //! assert_eq!(bwt_str, "ard$rcaaaabb");
+//! # Ok(())
+//! # }
 //! ```
-//!
-//! Given a typical text, it runs in `O(n log n loglog n)` time and `O(n)` additional bits of space,
-//! where `n` is the length of the input string and the alphabet size is much smaller than `n`.
-//! See the book for more details.
 #![deny(missing_docs)]
 mod radixsort;
 
@@ -46,18 +52,7 @@ use radixsort::MsdRadixSorter;
 ///
 /// # Examples
 ///
-/// ```
-/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-/// use small_bwt::BwtBuilder;
-///
-/// let text = "abracadabra$";
-/// let mut bwt = vec![];
-/// BwtBuilder::new(text.as_bytes())?.build(&mut bwt)?;
-/// let bwt_str = String::from_utf8_lossy(&bwt);
-/// assert_eq!(bwt_str, "ard$rcaaaabb");
-/// # Ok(())
-/// # }
-/// ```
+/// See [the top page](crate).
 pub struct BwtBuilder<'a> {
     text: &'a [u8],
     chunk_size: usize,

@@ -33,7 +33,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     let text = read_text(&args.input_file, args.teriminator)?;
-    small_bwt::verify_terminal_character(&text)?;
+    small_bwt::verify_terminal_character(&text).map_err(|e| {
+        format!("Got error while verifying terminal character: {e} Consider using -t option.")
+    })?;
 
     let now = Instant::now();
     let builder = BwtBuilder::new(&text)?.verbose(true);

@@ -1,9 +1,17 @@
 # BWT construction in small space
 
+![](https://github.com/kampersanda/small-bwt/actions/workflows/rust.yml/badge.svg)
+[![Documentation](https://docs.rs/small-bwt/badge.svg)](https://docs.rs/small-bwt)
+[![Crates.io](https://img.shields.io/crates/v/small-bwt.svg)](https://crates.io/crates/small-bwt)
+
 This is a Rust implementation of the BWT construction algorithm in small space,
 described in Algorithm 11.8 of the book:
 [Compact Data Structures - A Practical Approach](https://users.dcc.uchile.cl/~gnavarro/CDSbook/),
 Gonzalo Navarro, 2016.
+
+Given a typical text, it runs in $O(n \log n \log \log n)$ time and $O(n)$ additional bits of space,
+where $n$ is the length of the input string and the alphabet size is much smaller than $n$.
+See the book for more details.
 
 ## Documentation
 

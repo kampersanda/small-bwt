@@ -1,14 +1,48 @@
+//! # BWT construction in small space
+//!
 //! Implementation of the BWT construction algorithm in small space,
 //! described in Algorithm 11.8 of the book:
 //! [Compact Data Structures - A Practical Approach](https://users.dcc.uchile.cl/~gnavarro/CDSbook/),
 //! Gonzalo Navarro, 2016.
+//!
+//! Given a typical text, it runs in `O(n log n loglog n)` time and `O(n)` additional bits of space,
+//! where `n` is the length of the input string and the alphabet size is much smaller than `n`.
+//! See the book for more details.
+//!
+//! ## Basic usage
+//!
+//! [`BwtBuilder`] provides a simple interface to build the BWT.
+//! It inputs a byte slice and outputs the BWT to a write stream.
+//!
+//! ```
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! use small_bwt::BwtBuilder;
+//!
+//! // The text must end with a smallest terminal character.
+//! let text = "abracadabra$";
+//!
+//! // Build the BWT.
+//! let mut bwt = vec![];
+//! BwtBuilder::new(text.as_bytes())?.build(&mut bwt)?;
+//! let bwt_str = String::from_utf8_lossy(&bwt);
+//! assert_eq!(bwt_str, "ard$rcaaaabb");
+//! # Ok(())
+//! # }
+//! ```
 #![deny(missing_docs)]
+mod radixsort;
 
 use std::io::Write;
 
 use anyhow::{anyhow, Result};
 
+use radixsort::MsdRadixSorter;
+
 /// BWT builder in small space.
+///
+/// Given a typical text, it runs in `O(n log n loglog n)` time and `O(n)` additional bits of space,
+/// where `n` is the length of the input string and the alphabet size is much smaller than `n`.
+/// See the book for more details.
 ///
 /// # Specifications
 ///
@@ -18,18 +52,7 @@ use anyhow::{anyhow, Result};
 ///
 /// # Examples
 ///
-/// ```
-/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-/// use small_bwt::BwtBuilder;
-///
-/// let text = "abracadabra$";
-/// let mut bwt = vec![];
-/// BwtBuilder::new(text.as_bytes())?.build(&mut bwt)?;
-/// let bwt_str = String::from_utf8_lossy(&bwt);
-/// assert_eq!(bwt_str, "ard$rcaaaabb");
-/// # Ok(())
-/// # }
-/// ```
+/// See [the top page](crate).
 pub struct BwtBuilder<'a> {
     text: &'a [u8],
     chunk_size: usize,
@@ -41,7 +64,7 @@ impl<'a> BwtBuilder<'a> {
     ///
     /// # Arguments
     ///
-    /// * `text` - The text to be transformed.
+    /// * `text` - The text to be transformed, which should satisfy [`verify_terminal_character`].
     ///
     /// # Errors
     ///
@@ -60,7 +83,7 @@ impl<'a> BwtBuilder<'a> {
         })
     }
 
-    /// Sets the chunk size.
+    /// Sets the chunk size (for experiments).
     ///
     /// # Arguments
     ///
@@ -73,6 +96,7 @@ impl<'a> BwtBuilder<'a> {
     /// # Errors
     ///
     /// An error is returned if `chunk_size` is zero.
+    #[doc(hidden)]
     pub fn chunk_size(mut self, chunk_size: usize) -> Result<Self> {
         if chunk_size == 0 {
             return Err(anyhow!("chunk_size must be positive."));
@@ -97,12 +121,6 @@ impl<'a> BwtBuilder<'a> {
     }
 
     /// Builds the BWT and writes it to `wrt`.
-    ///
-    /// # Specifications
-    ///
-    /// This assumes that the smallest character appears only at the end of the text.
-    /// Given an unexpected text, the behavior is undefined.
-    /// If you want to verify the text, use [`verify_terminal_character`].
     ///
     /// # Arguments
     ///
@@ -166,9 +184,8 @@ fn bwt_from_cuts<W: Write>(
         }
 
         progress.print(&format!("Length of the chunks: {:?}", chunks.len()));
+        chunks = MsdRadixSorter::sort(text, chunks, 256);
 
-        // TODO: Use radix sort.
-        chunks.sort_unstable_by(|&a, &b| text[a..].cmp(&text[b..]));
         for &j in &chunks {
             let c = if j == 0 {
                 *text.last().unwrap()
@@ -323,6 +340,10 @@ pub fn verify_terminal_character(text: &[u8]) -> Result<()> {
 /// # }
 /// ```
 pub fn decode_bwt(bwt: &[u8]) -> Result<Vec<u8>> {
+    if bwt.is_empty() {
+        return Err(anyhow!("bwt must not be empty."));
+    }
+
     let counts = {
         let mut counts = vec![0; 256];
         for &c in bwt {
@@ -357,6 +378,9 @@ pub fn decode_bwt(bwt: &[u8]) -> Result<Vec<u8>> {
 
     let mut i = 0;
     while bwt[i] != terminator {
+        if decoded.len() == bwt.len() {
+            return Err(anyhow!("LF mapping will be broken."));
+        }
         decoded.push(bwt[i]);
         i = ranks[bwt[i] as usize] + bwt[..i].iter().filter(|&&c| c == bwt[i]).count();
     }

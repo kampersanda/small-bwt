@@ -18,7 +18,7 @@ fn criterion_bwt_english(c: &mut Criterion) {
     group.sample_size(SAMPLE_SIZE);
     group.warm_up_time(WARM_UP_TIME);
     group.measurement_time(MEASURE_TIME);
-    group.sampling_mode(SamplingMode::Auto);
+    group.sampling_mode(SamplingMode::Flat);
     let text = english_10mb_txt();
     let mut n = 1000;
     while n <= text.len() {

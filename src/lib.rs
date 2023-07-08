@@ -378,9 +378,7 @@ pub fn decode_bwt(bwt: &[u8]) -> Result<Vec<u8>> {
 
     let mut i = 0;
     while bwt[i] != terminator {
-        if decoded.len() == bwt.len() {
-            return Err(anyhow!("LF mapping will be broken."));
-        }
+        assert!(decoded.len() < bwt.len());
         decoded.push(bwt[i]);
         i = ranks[bwt[i] as usize] + bwt[..i].iter().filter(|&&c| c == bwt[i]).count();
     }
@@ -491,5 +489,33 @@ mod tests {
         expected[b'd' as usize] = 1;
         expected[b'r' as usize] = 2;
         assert_eq!(freqs, expected);
+    }
+
+    #[test]
+    fn test_verify_terminator_empty() {
+        let text = "";
+        let e = verify_terminator(text.as_bytes());
+        assert!(e.is_err());
+    }
+
+    #[test]
+    fn test_decode_bwt_single() {
+        let bwt = "$";
+        let decoded = decode_bwt(bwt.as_bytes()).unwrap();
+        assert_eq!(decoded, "$".as_bytes());
+    }
+
+    #[test]
+    fn test_decode_bwt_empty() {
+        let bwt = "";
+        let e = decode_bwt(bwt.as_bytes());
+        assert!(e.is_err());
+    }
+
+    #[test]
+    fn test_decode_bwt_invalid_terminator() {
+        let bwt = "ard$rcaaa$bb";
+        let e = decode_bwt(bwt.as_bytes());
+        assert!(e.is_err());
     }
 }

@@ -340,6 +340,10 @@ pub fn verify_terminal_character(text: &[u8]) -> Result<()> {
 /// # }
 /// ```
 pub fn decode_bwt(bwt: &[u8]) -> Result<Vec<u8>> {
+    if bwt.is_empty() {
+        return Err(anyhow!("bwt must not be empty."));
+    }
+
     let counts = {
         let mut counts = vec![0; 256];
         for &c in bwt {
@@ -374,6 +378,9 @@ pub fn decode_bwt(bwt: &[u8]) -> Result<Vec<u8>> {
 
     let mut i = 0;
     while bwt[i] != terminator {
+        if decoded.len() == bwt.len() {
+            return Err(anyhow!("LF mapping will be broken."));
+        }
         decoded.push(bwt[i]);
         i = ranks[bwt[i] as usize] + bwt[..i].iter().filter(|&&c| c == bwt[i]).count();
     }

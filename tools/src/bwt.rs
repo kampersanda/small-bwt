@@ -21,11 +21,7 @@ struct Args {
     #[arg(short = 'o', long, help = "Path to an output bwt file")]
     output_file: Option<String>,
 
-    #[arg(
-        short = 't',
-        long,
-        help = "Flag to add a special terminal character \\0"
-    )]
+    #[arg(short = 't', long, help = "Flag to add a special teriminator \\0")]
     teriminator: bool,
 }
 

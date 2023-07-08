@@ -6,13 +6,14 @@ pub struct MsdRadixSorter<'a> {
 
 impl<'a> MsdRadixSorter<'a> {
     pub fn sort(text: &'a [u8], suffixes: Vec<usize>, threshold: usize) -> Vec<usize> {
-        let n = suffixes.len();
+        let n_suffixes = suffixes.len();
+        let threshold = threshold.max(1);
         let mut sorter = Self {
             text,
             suffixes,
             threshold,
         };
-        sorter.sort_range(0, n, 0);
+        sorter.sort_range(0, n_suffixes, 0);
         sorter.suffixes
     }
 

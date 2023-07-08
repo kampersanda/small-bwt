@@ -47,9 +47,8 @@ impl<'a> MsdRadixSorter<'a> {
                 counts[c as usize] -= 1;
                 sorted[counts[c as usize]] = self.suffixes[i];
             }
-            for i in start..end {
-                self.suffixes[i] = sorted[i - start];
-            }
+
+            self.suffixes[start..end].copy_from_slice(&sorted[..]);
         }
 
         // Recursively sort each bucket.

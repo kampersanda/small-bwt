@@ -34,10 +34,22 @@ fn perform_bwt(group: &mut BenchmarkGroup<WallTime>, text: &[u8]) {
         b.iter(|| {
             small_bwt::BwtBuilder::new(&text)
                 .unwrap()
-                .build(Vec::new())
+                .build(NullWriter)
                 .unwrap()
         });
     });
+}
+
+struct NullWriter;
+
+impl std::io::Write for NullWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
 }
 
 criterion_group!(benches, criterion_bwt_english);

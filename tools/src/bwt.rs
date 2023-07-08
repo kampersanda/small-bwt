@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Read;
+use std::time::Instant;
 
 use clap::Parser;
 use small_bwt::BwtBuilder;
@@ -18,7 +19,7 @@ struct Args {
     input_file: String,
 
     #[arg(short = 'o', long, help = "Path to an output bwt file")]
-    output_file: String,
+    output_file: Option<String>,
 
     #[arg(short = 'c', long, help = "Optional parameter for chunk size")]
     chunk_size: Option<usize>,
@@ -37,13 +38,23 @@ fn main() -> Result<(), Box<dyn Error>> {
     let text = read_text(&args.input_file, args.teriminator)?;
     small_bwt::verify_terminal_character(&text)?;
 
-    let writer = BufWriter::new(File::create(&args.output_file)?);
     let builder = if let Some(chunk_size) = args.chunk_size {
         BwtBuilder::new(&text)?.chunk_size(chunk_size)?
     } else {
         BwtBuilder::new(&text)?
     };
-    builder.verbose(true).build(writer)?;
+    let builder = builder.verbose(true);
+
+    let now = Instant::now();
+    if let Some(output_file) = args.output_file.as_ref() {
+        let writer = BufWriter::new(File::create(output_file)?);
+        builder.build(writer)?;
+    } else {
+        let writer = NullWriter;
+        builder.build(writer)?;
+    }
+    println!("Elapsed sec: {}", now.elapsed().as_millis() as f64 / 1000.0);
+
     Ok(())
 }
 
@@ -56,4 +67,16 @@ fn read_text(input_file: &str, teriminator: bool) -> Result<Vec<u8>, Box<dyn Err
         text.push(b'\0');
     }
     Ok(text)
+}
+
+struct NullWriter;
+
+impl std::io::Write for NullWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
 }

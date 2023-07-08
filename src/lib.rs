@@ -44,7 +44,7 @@ use radixsort::MsdRadixSorter;
 /// where `n` is the length of the input string and the alphabet size is much smaller than `n`.
 /// See the book for more details.
 ///
-/// # Specifications
+/// # Requirements
 ///
 /// This assumes that the smallest character appears only at the end of the text.
 /// Given an unexpected text, the behavior is undefined.

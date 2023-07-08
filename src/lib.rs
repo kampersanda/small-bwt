@@ -2,6 +2,27 @@
 //! described in Algorithm 11.8 of the book:
 //! [Compact Data Structures - A Practical Approach](https://users.dcc.uchile.cl/~gnavarro/CDSbook/),
 //! Gonzalo Navarro, 2016.
+//!
+//! [`BwtBuilder`] provides a simple interface to build the BWT.
+//! It inputs a byte slice and outputs the BWT to a write stream.
+//!
+//! ```
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! use small_bwt::BwtBuilder;
+//!
+//! // The text must end with a smallest terminal character.
+//! let text = "abracadabra$";
+//!
+//! // Build the BWT.
+//! let mut bwt = vec![];
+//! BwtBuilder::new(text.as_bytes())?.build(&mut bwt)?;
+//! let bwt_str = String::from_utf8_lossy(&bwt);
+//! assert_eq!(bwt_str, "ard$rcaaaabb");
+//! ```
+//!
+//! Given a typical text, it runs in `O(n log n loglog n)` time and `O(n)` additional bits of space,
+//! where `n` is the length of the input string and the alphabet size is much smaller than `n`.
+//! See the book for more details.
 #![deny(missing_docs)]
 mod radixsort;
 
@@ -13,7 +34,7 @@ use radixsort::MsdRadixSorter;
 
 /// BWT builder in small space.
 ///
-/// Given a typical text, it runs in `O(n log n log log n)` time and `O(n)` additional bits of space,
+/// Given a typical text, it runs in `O(n log n loglog n)` time and `O(n)` additional bits of space,
 /// where `n` is the length of the input string and the alphabet size is much smaller than `n`.
 /// See the book for more details.
 ///
@@ -67,7 +88,7 @@ impl<'a> BwtBuilder<'a> {
         })
     }
 
-    /// Sets the chunk size.
+    /// Sets the chunk size (for experiments).
     ///
     /// # Arguments
     ///
@@ -80,6 +101,7 @@ impl<'a> BwtBuilder<'a> {
     /// # Errors
     ///
     /// An error is returned if `chunk_size` is zero.
+    #[doc(hidden)]
     pub fn chunk_size(mut self, chunk_size: usize) -> Result<Self> {
         if chunk_size == 0 {
             return Err(anyhow!("chunk_size must be positive."));

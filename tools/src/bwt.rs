@@ -23,6 +23,13 @@ struct Args {
 
     #[arg(short = 't', long, help = "Flag to add a special teriminator \\0")]
     teriminator: bool,
+
+    #[arg(
+        short = 'v',
+        long,
+        help = "Flag to enable verification mode (output_file will be ignored if set)"
+    )]
+    verification: bool,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -35,7 +42,17 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let now = Instant::now();
     let builder = BwtBuilder::new(&text)?.verbose(true);
-    if let Some(output_file) = args.output_file.as_ref() {
+    if args.verification {
+        eprintln!("VERIFICATION MODE: The BWT will not be saved.");
+        let mut bwt = Vec::with_capacity(text.len());
+        builder.build(&mut bwt)?;
+        let decoded = small_bwt::decode_bwt(&bwt)?;
+        if decoded != text {
+            eprintln!("ERROR: The decoded text is different from the original text. The system will be broken.");
+        } else {
+            eprintln!("NO PROBLEM: The decoded text is the same as the original text. The system will be fine.");
+        }
+    } else if let Some(output_file) = args.output_file.as_ref() {
         let writer = BufWriter::new(File::create(output_file)?);
         builder.build(writer)?;
     } else {

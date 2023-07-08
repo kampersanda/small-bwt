@@ -165,7 +165,7 @@ fn bwt_from_cuts<W: Write>(
             }
         }
 
-        progress.print(&format!("Length of chunks: {:?}", chunks.len()));
+        progress.print(&format!("Length of the chunks: {:?}", chunks.len()));
 
         // TODO: Use radix sort.
         chunks.sort_unstable_by(|&a, &b| text[a..].cmp(&text[b..]));
@@ -246,7 +246,7 @@ impl Progress {
 
     fn print(&self, msg: &str) {
         if self.verbose {
-            eprintln!("{}", msg);
+            eprintln!("[INFO] {}", msg);
         }
     }
 }

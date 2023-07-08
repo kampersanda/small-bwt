@@ -21,3 +21,4 @@ Cargo.lock
 # Added manually
 .vscode
 files/
+benches/english.10MB

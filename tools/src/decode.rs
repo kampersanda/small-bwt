@@ -10,7 +10,7 @@ use clap::Parser;
     author,
     version,
     about,
-    long_about = "Decodes the original text from a given BWT. This is for debugging purposes and runs slowly."
+    long_about = "Decodes the original text from a given BWT."
 )]
 struct Args {
     #[arg(short = 'i', long, help = "Path to an input bwt file")]

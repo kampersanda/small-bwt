@@ -44,11 +44,11 @@ use radixsort::MsdRadixSorter;
 /// where `n` is the length of the input string and the alphabet size is much smaller than `n`.
 /// See the book for more details.
 ///
-/// # Specifications
+/// # Requirements
 ///
 /// This assumes that the smallest character appears only at the end of the text.
 /// Given an unexpected text, the behavior is undefined.
-/// If you want to verify the text, use [`verify_terminal_character`].
+/// If you want to verify the text, use [`verify_terminator`].
 ///
 /// # Examples
 ///
@@ -64,7 +64,7 @@ impl<'a> BwtBuilder<'a> {
     ///
     /// # Arguments
     ///
-    /// * `text` - The text to be transformed, which should satisfy [`verify_terminal_character`].
+    /// * `text` - The text to be transformed, which should satisfy [`verify_terminator`].
     ///
     /// # Errors
     ///
@@ -289,17 +289,17 @@ fn to_mib(bytes: usize) -> f64 {
 /// # Examples
 ///
 /// ```
-/// use small_bwt::verify_terminal_character;
+/// use small_bwt::verify_terminator;
 ///
 /// let text = "abracadabra$";
-/// let result = verify_terminal_character(text.as_bytes());
+/// let result = verify_terminator(text.as_bytes());
 /// assert!(result.is_ok());
 ///
 /// let text = "abrac$dabra$";
-/// let result = verify_terminal_character(text.as_bytes());
+/// let result = verify_terminator(text.as_bytes());
 /// assert!(result.is_err());
 /// ```
-pub fn verify_terminal_character(text: &[u8]) -> Result<()> {
+pub fn verify_terminator(text: &[u8]) -> Result<()> {
     if text.is_empty() {
         return Err(anyhow!("text must not be empty."));
     }
@@ -316,8 +316,8 @@ pub fn verify_terminal_character(text: &[u8]) -> Result<()> {
 
 /// Decodes the original text from a given BWT.
 ///
-/// It runs in `O(n^2)` time and `O(n log s)` bits of space,
-/// where `n` is the length of the text and `s` is the size of the alphabet.
+/// It runs in `O(n)` time and `O(n log n)` bits of space,
+/// where `n` is the length of the text.
 ///
 /// # Arguments
 ///
@@ -344,22 +344,24 @@ pub fn decode_bwt(bwt: &[u8]) -> Result<Vec<u8>> {
         return Err(anyhow!("bwt must not be empty."));
     }
 
-    let counts = {
+    let (counts, ranks) = {
         let mut counts = vec![0; 256];
-        for &c in bwt {
+        let mut ranks = vec![0; bwt.len()];
+        for (&c, r) in bwt.iter().zip(ranks.iter_mut()) {
+            *r = counts[c as usize];
             counts[c as usize] += 1;
         }
-        counts
+        (counts, ranks)
     };
 
-    let ranks = {
-        let mut ranks = vec![0; 256];
+    let occ = {
+        let mut occ = vec![0; 256];
         let mut rank = 0;
         for i in 0..256 {
-            ranks[i] = rank;
+            occ[i] = rank;
             rank += counts[i];
         }
-        ranks
+        occ
     };
 
     let terminator = counts.iter().position(|&c| c != 0).unwrap();
@@ -370,7 +372,6 @@ pub fn decode_bwt(bwt: &[u8]) -> Result<Vec<u8>> {
             counts[terminator]
         ));
     }
-
     let terminator = terminator as u8;
 
     let mut decoded = Vec::with_capacity(bwt.len());
@@ -378,11 +379,9 @@ pub fn decode_bwt(bwt: &[u8]) -> Result<Vec<u8>> {
 
     let mut i = 0;
     while bwt[i] != terminator {
-        if decoded.len() == bwt.len() {
-            return Err(anyhow!("LF mapping will be broken."));
-        }
+        assert!(decoded.len() < bwt.len());
         decoded.push(bwt[i]);
-        i = ranks[bwt[i] as usize] + bwt[..i].iter().filter(|&&c| c == bwt[i]).count();
+        i = occ[bwt[i] as usize] + ranks[i];
     }
     decoded.reverse();
 
@@ -431,6 +430,13 @@ mod tests {
             .unwrap();
         let bwt_str = String::from_utf8_lossy(&bwt);
         assert_eq!(bwt_str, "ard$rcaaaabb");
+    }
+
+    #[test]
+    fn test_bwt_builder_empty() {
+        let text = "";
+        let e = BwtBuilder::new(text.as_bytes());
+        assert!(e.is_err());
     }
 
     #[test]
@@ -484,5 +490,33 @@ mod tests {
         expected[b'd' as usize] = 1;
         expected[b'r' as usize] = 2;
         assert_eq!(freqs, expected);
+    }
+
+    #[test]
+    fn test_verify_terminator_empty() {
+        let text = "";
+        let e = verify_terminator(text.as_bytes());
+        assert!(e.is_err());
+    }
+
+    #[test]
+    fn test_decode_bwt_single() {
+        let bwt = "$";
+        let decoded = decode_bwt(bwt.as_bytes()).unwrap();
+        assert_eq!(decoded, "$".as_bytes());
+    }
+
+    #[test]
+    fn test_decode_bwt_empty() {
+        let bwt = "";
+        let e = decode_bwt(bwt.as_bytes());
+        assert!(e.is_err());
+    }
+
+    #[test]
+    fn test_decode_bwt_invalid_terminator() {
+        let bwt = "ard$rcaaa$bb";
+        let e = decode_bwt(bwt.as_bytes());
+        assert!(e.is_err());
     }
 }

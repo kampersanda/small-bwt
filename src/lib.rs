@@ -9,7 +9,7 @@
 //! where `n` is the length of the input string and the alphabet size is much smaller than `n`.
 //! See the book for more details.
 //!
-//! ## Basic Usage
+//! ## Basic usage
 //!
 //! [`BwtBuilder`] provides a simple interface to build the BWT.
 //! It inputs a byte slice and outputs the BWT to a write stream.

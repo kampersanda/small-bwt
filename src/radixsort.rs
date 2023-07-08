@@ -25,27 +25,29 @@ impl<'a> MsdRadixSorter<'a> {
             return;
         }
 
-        // Counts occurrences at this level.
-        let mut counts = vec![0; 256];
-        for i in start..end {
-            let c = self.text[self.suffixes[i] + level];
-            counts[c as usize] += 1;
-        }
+        {
+            // Counts occurrences at this level.
+            let mut counts = vec![0; 256];
+            for i in start..end {
+                let c = self.text[self.suffixes[i] + level];
+                counts[c as usize] += 1;
+            }
 
-        // Computes cumulative sums
-        for i in 1..256 {
-            counts[i] += counts[i - 1];
-        }
+            // Computes cumulative sums
+            for i in 1..256 {
+                counts[i] += counts[i - 1];
+            }
 
-        // Bucket sort.
-        let mut sorted = vec![0; end - start];
-        for i in (start..end).rev() {
-            let c = self.text[self.suffixes[i] + level];
-            counts[c as usize] -= 1;
-            sorted[counts[c as usize]] = self.suffixes[i];
-        }
-        for i in start..end {
-            self.suffixes[i] = sorted[i - start];
+            // Bucket sort.
+            let mut sorted = vec![0; end - start];
+            for i in (start..end).rev() {
+                let c = self.text[self.suffixes[i] + level];
+                counts[c as usize] -= 1;
+                sorted[counts[c as usize]] = self.suffixes[i];
+            }
+            for i in start..end {
+                self.suffixes[i] = sorted[i - start];
+            }
         }
 
         // Recursively sort each bucket.

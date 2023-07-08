@@ -3,6 +3,7 @@
 //! [Compact Data Structures - A Practical Approach](https://users.dcc.uchile.cl/~gnavarro/CDSbook/),
 //! Gonzalo Navarro, 2016.
 #![deny(missing_docs)]
+mod radixsort;
 
 use std::io::Write;
 
